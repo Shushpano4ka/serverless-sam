@@ -50,10 +50,10 @@ Parameters:
 Conditions:
   HasStagingVariables:
     !Not
-      - !Equals [!Ref StagingFile, ""]
+    - !Equals [ !Ref StagingFile, "" ]
 Resources:
   CodeBuildProject:
-    DependsOn: [S3Bucket]
+    DependsOn: [ S3Bucket ]
     Description: Creating AWS CodeBuild project
     Type: AWS::CodeBuild::Project
     Properties:
@@ -84,7 +84,7 @@ Resources:
       VersioningConfiguration:
         Status: Enabled
   S3ArtifactBucketPolicy:
-    DependsOn: [S3Bucket]
+    DependsOn: [ S3Bucket ]
     Description: Setting Amazon S3 bucket policy for AWS CodePipeline access
     Type: AWS::S3::BucketPolicy
     Properties:
@@ -93,87 +93,87 @@ Resources:
         Version: "2012-10-17"
         Id: SSEAndSSLPolicy
         Statement:
-        - Sid: DenyInsecureConnections
-          Effect: Deny
-          Principal: "*"
-          Action: s3:*
-          Resource: !Sub "arn:aws:s3:::${S3Bucket}/*"
-          Condition:
-            Bool:
-              aws:SecureTransport: false
+          - Sid: DenyInsecureConnections
+            Effect: Deny
+            Principal: "*"
+            Action: s3:*
+            Resource: !Sub "arn:aws:s3:::${S3Bucket}/*"
+            Condition:
+              Bool:
+                aws:SecureTransport: false
   ProjectPipeline:
-    DependsOn: [S3Bucket, CodeBuildProject]
+    DependsOn: [ S3Bucket, CodeBuildProject ]
     Description: Creating a deployment pipeline for your project in AWS CodePipeline
     Type: AWS::CodePipeline::Pipeline
     Properties:
       Name: !Sub "${AppName}-pipeline"
       RoleArn: !Ref CodePipelineRole
       Stages:
-      - Name: Source
-        Actions:
-        - Name: source
-          InputArtifacts: []
-          ActionTypeId:
-            Version: "1"
-            Category: Source
-            Owner: ThirdParty
-            Provider: GitHub
-          OutputArtifacts:
-          - Name: !Sub "${AppName}-SourceArtifact"
-          Configuration:
-            Repo: !Ref GitHubRepoName
-            Branch: !Ref GitHubRepoBranch
-            OAuthToken: !Ref GitHubToken
-            Owner: !Ref GitHubUser
-          RunOrder: 1
-      - Name: Build
-        Actions:
-        - Name: build-from-source
-          InputArtifacts:
-          - Name: !Sub "${AppName}-SourceArtifact"
-          ActionTypeId:
-            Category: Build
-            Owner: AWS
-            Version: "1"
-            Provider: CodeBuild
-          OutputArtifacts:
-          - Name: !Sub "${AppName}-BuildArtifact"
-          Configuration:
-            ProjectName: !Sub "${AppName}-build"
-          RunOrder: 1
-      - Name: Deploy
-        Actions:
-        - Name: create-changeset
-          InputArtifacts:
-          - Name: !Sub "${AppName}-BuildArtifact"
-          ActionTypeId:
-            Category: Deploy
-            Owner: AWS
-            Version: "1"
-            Provider: CloudFormation
-          OutputArtifacts: []
-          Configuration:
-            StackName: !Sub "${AppName}-serverless-stack"
-            ActionMode: CHANGE_SET_REPLACE
-            RoleArn: !Ref CloudformationRole
-            ChangeSetName: pipeline-changeset
-            Capabilities: CAPABILITY_NAMED_IAM
-            TemplatePath: !Sub "${AppName}-BuildArtifact::${SAMOutputFile}"
-            TemplateConfiguration: !If [ HasStagingVariables, !Sub "${AppName}-BuildArtifact::${StagingFile}", "" ]
-          RunOrder: 1
-        - Name: execute-changeset
-          InputArtifacts: []
-          ActionTypeId:
-            Category: Deploy
-            Owner: AWS
-            Version: "1"
-            Provider: CloudFormation
-          OutputArtifacts: []
-          Configuration:
-            StackName: !Sub "${AppName}-serverless-stack"
-            ActionMode: CHANGE_SET_EXECUTE
-            ChangeSetName: pipeline-changeset
-          RunOrder: 2
+        - Name: Source
+          Actions:
+            - Name: source
+              InputArtifacts: [ ]
+              ActionTypeId:
+                Version: "1"
+                Category: Source
+                Owner: ThirdParty
+                Provider: GitHub
+              OutputArtifacts:
+                - Name: !Sub "${AppName}-SourceArtifact"
+              Configuration:
+                Repo: !Ref GitHubRepoName
+                Branch: !Ref GitHubRepoBranch
+                OAuthToken: !Ref GitHubToken
+                Owner: !Ref GitHubUser
+              RunOrder: 1
+        - Name: Build
+          Actions:
+            - Name: build-from-source
+              InputArtifacts:
+                - Name: !Sub "${AppName}-SourceArtifact"
+              ActionTypeId:
+                Category: Build
+                Owner: AWS
+                Version: "1"
+                Provider: CodeBuild
+              OutputArtifacts:
+                - Name: !Sub "${AppName}-BuildArtifact"
+              Configuration:
+                ProjectName: !Sub "${AppName}-build"
+              RunOrder: 1
+        - Name: Deploy
+          Actions:
+            - Name: create-changeset
+              InputArtifacts:
+                - Name: !Sub "${AppName}-BuildArtifact"
+              ActionTypeId:
+                Category: Deploy
+                Owner: AWS
+                Version: "1"
+                Provider: CloudFormation
+              OutputArtifacts: [ ]
+              Configuration:
+                StackName: !Sub "${AppName}-serverless-stack"
+                ActionMode: CHANGE_SET_REPLACE
+                RoleArn: !Ref CloudformationRole
+                ChangeSetName: pipeline-changeset
+                Capabilities: CAPABILITY_NAMED_IAM
+                TemplatePath: !Sub "${AppName}-BuildArtifact::${SAMOutputFile}"
+                TemplateConfiguration: !If [ HasStagingVariables, !Sub "${AppName}-BuildArtifact::${StagingFile}", "" ]
+              RunOrder: 1
+            - Name: execute-changeset
+              InputArtifacts: [ ]
+              ActionTypeId:
+                Category: Deploy
+                Owner: AWS
+                Version: "1"
+                Provider: CloudFormation
+              OutputArtifacts: [ ]
+              Configuration:
+                StackName: !Sub "${AppName}-serverless-stack"
+                ActionMode: CHANGE_SET_EXECUTE
+                ChangeSetName: pipeline-changeset
+              RunOrder: 2
       ArtifactStore:
         Type: S3
         Location: !Ref S3Bucket
