@@ -15,7 +15,6 @@ exports.handler = (event, context, callback) => {
     var samMultiplier = process.env.SAM_MULTIPLIER || 1;
 
     var totalSAMs = samCount * samMultiplier;
-
     console.log('The number of SAMs to show: ' + samCount);
     console.log('Multiplier to apply to SAMs: ' + samMultiplier);
     console.log('Total number of SAMs to show: ' + totalSAMs);
