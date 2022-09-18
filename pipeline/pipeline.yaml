@@ -4,7 +4,7 @@ Parameters:
   AppName:
     Type: String
     Description: Name of the application.
-    MinLength: "1"
+    MinLength: "3"
     MaxLength: "80"
     AllowedPattern: "[A-Za-z0-9-]+"
     ConstraintDescription: Malformed input parameter. AppName must only contain upper and lower case letters, numbers, and -.
